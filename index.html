@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -342,6 +343,10 @@ tr:hover td{background:var(--blue-lt);}
       <!-- PROSPECTS -->
       <div class="page" id="page-prospects">
         <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="ti ti-building-store"></i> Mes prospects</span>
+            <button class="btn btn-primary btn-sm" onclick="exportToExcel()"><i class="ti ti-file-spreadsheet"></i> Exporter en Excel</button>
+          </div>
           <div class="search-bar">
             <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Nom, ville, téléphone…" id="s-query" oninput="filterProspects()"></div>
             <select class="filter-sel" id="s-statut" onchange="filterProspects()">
@@ -852,7 +857,111 @@ function resetForm() {
 
 
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ── EXPORT EXCEL ──────────────────────────────────────────────────────────────
+function exportToExcel() {
+  if (!prospects.length) { toast('Aucun prospect à exporter.', false); return; }
+
+  const headers = [
+    'Date récupération','Lien annonce Leboncoin','Type de bien','Ville','Adresse complète',
+    'Nom propriétaire','Prénom propriétaire','Téléphone','Prix affiché (€)','Surface (m²)',
+    'Statut contact','Date appel',"Résumé de l'échange",'RDV obtenu ?','Date du RDV',
+    'Heure du RDV','Motivation vendeur','Relance nécessaire ?','Date relance','Commentaires complémentaires'
+  ];
+
+  const fmtDate = (d) => {
+    if (!d) return '';
+    const parts = d.split('-');
+    return parts.length===3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : d;
+  };
+
+  const rows = prospects.map(p => [
+    fmtDate(p.date), p.lien||'', p.type||'', p.ville||'', p.adresse||'',
+    p.nom||'', p.prenom||'', p.tel||'', p.prix?Number(p.prix):'', p.surface?Number(p.surface):'',
+    p.statut||'', fmtDate(p.date_appel), p.resume||'', p.rdv||'', fmtDate(p.date_rdv),
+    p.heure_rdv||'', p.motiv||'', p.relance||'', fmtDate(p.date_relance), p.commentaires||''
+  ]);
+
+  const wsData = [
+    ['🏠  SUIVI DE PROSPECTION IMMOBILIÈRE'],
+    headers,
+    ...rows
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:19}}];
+  ws['!cols'] = [
+    {wch:14},{wch:30},{wch:13},{wch:14},{wch:24},{wch:15},{wch:15},{wch:14},
+    {wch:13},{wch:11},{wch:18},{wch:12},{wch:36},{wch:11},{wch:12},{wch:11},
+    {wch:16},{wch:16},{wch:13},{wch:30}
+  ];
+  ws['!autofilter'] = {ref: 'A2:T'+wsData.length};
+  ws['!freeze'] = {xSplit:0, ySplit:2};
+
+  const titleCell = ws['A1'];
+  if (titleCell) titleCell.s = {font:{bold:true,sz:14,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F3864'}},alignment:{horizontal:'center',vertical:'center'}};
+
+  for (let c=0; c<headers.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({r:1,c});
+    if (ws[cellRef]) ws[cellRef].s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2F5496'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  }
+
+  const statusColors = {
+    'Rendez-vous obtenu': {bg:'C6EFCE',font:'276221'},
+    'Mandat signé': {bg:'BDD7EE',font:'1F497D'},
+    'Refus': {bg:'FFC7CE',font:'9C0006'}
+  };
+
+  rows.forEach((row, i) => {
+    const r = i + 2;
+    const statut = row[10];
+    const relanceVal = row[17];
+    let style = null;
+    if (statusColors[statut]) style = {fill:{fgColor:{rgb:statusColors[statut].bg}},font:{color:{rgb:statusColors[statut].font}}};
+    else if (relanceVal === 'Oui') style = {fill:{fgColor:{rgb:'FFEB9C'}},font:{color:{rgb:'9C5700'}}};
+    if (style) {
+      for (let c=0; c<headers.length; c++) {
+        const cellRef = XLSX.utils.encode_cell({r,c});
+        if (ws[cellRef]) ws[cellRef].s = style;
+      }
+    }
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Suivi Prospection');
+
+  const total = prospects.length;
+  const appelStatuts = ['Appelé','Refus','Intéressé','Rendez-vous obtenu','Mandat signé'];
+  const appels = prospects.filter(p => appelStatuts.includes(p.statut)).length;
+  const rdvCount = prospects.filter(p => p.statut==='Rendez-vous obtenu'||p.statut==='Mandat signé').length;
+  const mandats = prospects.filter(p => p.statut==='Mandat signé').length;
+  const relancesCount = prospects.filter(p => p.relance==='Oui').length;
+  const taux = appels>0 ? (rdvCount/appels*100).toFixed(1)+'%' : '0.0%';
+
+  const dbData = [
+    ['📊  TABLEAU DE BORD — PROSPECTION IMMOBILIÈRE'],
+    [],
+    ['Indicateur','Valeur'],
+    ['Total annonces récupérées', total],
+    ['Appels effectués', appels],
+    ['Rendez-vous obtenus', rdvCount],
+    ['Taux de transformation appel → RDV', taux],
+    ['Relances à effectuer', relancesCount],
+    ['Mandats signés', mandats]
+  ];
+  const dbWs = XLSX.utils.aoa_to_sheet(dbData);
+  dbWs['!merges'] = [{s:{r:0,c:0},e:{r:0,c:1}}];
+  dbWs['!cols'] = [{wch:34},{wch:16}];
+  if (dbWs['A1']) dbWs['A1'].s = {font:{bold:true,sz:14,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F3864'}},alignment:{horizontal:'center'}};
+  ['A3','B3'].forEach(ref => { if(dbWs[ref]) dbWs[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2F5496'}}}; });
+  XLSX.utils.book_append_sheet(wb, dbWs, 'Tableau de bord');
+
+  const today = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `Suivi_Prospection_${today}.xlsx`);
+  toast('Export Excel généré avec succès !');
+}
+
+
 (async () => {
   const now = new Date();
   document.getElementById('topbar-date').textContent = now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
