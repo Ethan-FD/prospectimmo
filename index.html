@@ -451,84 +451,73 @@ tr:hover td{background:var(--blue-lt);}
 
       <!-- SCRIPT -->
       <div class="page" id="page-script">
-        <div class="card" style="overflow:visible;">
-          <div class="tab-bar">
-            <div class="tab active" onclick="switchTab('sc-appel',this)">Script d'appel</div>
-            <div class="tab" onclick="switchTab('sc-objections',this)">Objections</div>
+
+        <!-- Sélecteur de prospect -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="ti ti-phone-outgoing"></i> Appel en cours</span>
           </div>
-          <div id="sc-appel" class="script-content">
+          <div style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <select class="filter-sel" id="script-prospect-select" style="flex:1;min-width:220px;" onchange="loadProspectIntoScript()">
+              <option value="">— Sélectionner un prospect —</option>
+            </select>
+            <button class="btn btn-sm" onclick="showPage('script', document.querySelectorAll('.nav-item')[4]); restartScript();"><i class="ti ti-refresh"></i> Recommencer</button>
+          </div>
+          <div id="script-prospect-card" style="display:none; padding:0 18px 16px;">
+            <div style="background:var(--blue-lt); border:1px solid var(--blue-md); border-radius:var(--rlg); padding:12px 16px; display:flex; gap:18px; flex-wrap:wrap; font-size:13px;">
+              <div><strong id="sp-name">—</strong></div>
+              <div><i class="ti ti-map-pin" style="color:var(--blue);"></i> <span id="sp-ville">—</span></div>
+              <div><i class="ti ti-home" style="color:var(--blue);"></i> <span id="sp-type">—</span></div>
+              <div><i class="ti ti-coin" style="color:var(--blue);"></i> <span id="sp-prix">—</span></div>
+              <div><i class="ti ti-ruler" style="color:var(--blue);"></i> <span id="sp-surface">—</span></div>
+              <div><i class="ti ti-phone" style="color:var(--blue);"></i> <span id="sp-tel">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloc déroulement script interactif -->
+        <div class="card" style="overflow:visible;">
+          <div class="card-header">
+            <span class="card-title"><i class="ti ti-messages"></i> Déroulement de l'appel</span>
+            <span style="font-size:11px; color:var(--g400);">Espace / → : suivant · ← : précédent</span>
+          </div>
+          <div style="padding:18px;">
             <div class="tags-row">
               <span class="tag tag-blue"><i class="ti ti-check"></i> 3 oui</span>
               <span class="tag tag-green"><i class="ti ti-user"></i> Angle client</span>
               <span class="tag tag-purple"><i class="ti ti-calendar"></i> RDV solo</span>
-              <span class="tag tag-gray"><i class="ti ti-clock"></i> 3-5 min</span>
             </div>
-            <div class="phase">
-              <div class="phase-head"><div class="phase-num" style="background:#DBEAFE;color:#1D4ED8;">1</div><span class="phase-title">Présentation + premier oui</span><span class="phase-time">~20 sec</span></div>
-              <div class="phase-body">
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Bonjour ! Je m'appelle <em>[Votre prénom]</em>, je travaille avec un cabinet immobilier local. Je me permets de vous appeler au sujet de votre bien en vente. C'est bien vous le propriétaire ?</div></div>
-                <div class="line"><span class="spk p">Prop.</span><div class="bbl p">Oui c'est moi. <span class="oui-badge"><i class="ti ti-check" style="font-size:10px"></i> Oui 1</span></div></div>
-                <div class="line"><span class="spk n">Note</span><div class="bbl n">Prénom uniquement — naturel et non menaçant. "Cabinet" plutôt qu'"agence".</div></div>
-              </div>
+
+            <!-- Barre de progression -->
+            <div style="display:flex; gap:5px; margin-bottom:16px;" id="script-progress-bar"></div>
+
+            <!-- Réplique actuelle -->
+            <div id="script-current-line" style="min-height:120px;"></div>
+
+            <!-- Navigation -->
+            <div style="display:flex; gap:8px; margin-top:16px; justify-content:space-between;">
+              <button class="btn" onclick="scriptPrev()"><i class="ti ti-chevron-left"></i> Précédent</button>
+              <span id="script-step-counter" style="font-size:12px; color:var(--g400); align-self:center;"></span>
+              <button class="btn btn-primary" onclick="scriptNext()">Suivant <i class="ti ti-chevron-right"></i></button>
             </div>
-            <div class="phase">
-              <div class="phase-head"><div class="phase-num" style="background:#DCFCE7;color:#15803D;">2</div><span class="phase-title">Confirmation disponibilité — deuxième oui</span><span class="phase-time">~20 sec</span></div>
-              <div class="phase-body">
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Votre bien est toujours disponible à la vente en ce moment ?</div></div>
-                <div class="line"><span class="spk p">Prop.</span><div class="bbl p">Oui, tout à fait. <span class="oui-badge"><i class="ti ti-check" style="font-size:10px"></i> Oui 2</span></div></div>
-                <div class="line"><span class="spk n">Note</span><div class="bbl n">Si le bien est vendu → mettre à jour le statut et passer à l'annonce suivante.</div></div>
-              </div>
-            </div>
-            <div class="phase">
-              <div class="phase-head"><div class="phase-num" style="background:#FEF9C3;color:#854D0E;">3</div><span class="phase-title">L'opportunité client — troisième oui</span><span class="phase-time">~30 sec</span></div>
-              <div class="phase-body">
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">J'ai actuellement un client acheteur très sérieux qui recherche exactement ce type de bien dans votre secteur. Est-ce que vous seriez ouvert à ce qu'on vienne le découvrir ?</div></div>
-                <div class="line"><span class="spk p">Prop.</span><div class="bbl p">Euh… oui, pourquoi pas. <span class="oui-badge"><i class="ti ti-check" style="font-size:10px"></i> Oui 3</span></div></div>
-                <div class="tip-box"><i class="ti ti-bulb"></i><span>Si hésitation : <strong>"Ce n'est aucun engagement — juste une visite. Si ça ne lui correspond pas, vous n'entendez plus parler de nous."</strong></span></div>
-              </div>
-            </div>
-            <div class="phase">
-              <div class="phase-head"><div class="phase-num" style="background:#F3E8FF;color:#7C3AED;">4</div><span class="phase-title">Collecte des infos + RDV sans client</span><span class="phase-time">~1 min 30</span></div>
-              <div class="phase-body">
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Parfait ! Pour lui transmettre les informations, j'aurais besoin de quelques précisions. Le bien se situe à quelle adresse exactement ?</div></div>
-                <div class="line"><span class="spk n">Note</span><div class="bbl n">L'adresse vient naturellement — c'est "pour le client". Notez immédiatement.</div></div>
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Et c'est à quel nom s'il vous plaît ? <em>(prénom d'abord, puis nom)</em></div></div>
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Avant de le déranger pour une visite, je préfère passer moi-même en premier — comme ça je m'assure que votre bien correspond vraiment à ce qu'il recherche. Ça prend 20 minutes maximum. Vous seriez disponible plutôt en début ou en fin de semaine ?</div></div>
-                <div class="line"><span class="spk n">Note</span><div class="bbl n">Toujours deux options de date, jamais une question ouverte. Vous passez seul "pour ne pas faire perdre de temps au client".</div></div>
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Parfait, je note [jour] à [heure]. Je vous confirme par SMS. C'est bien le [numéro] pour vous joindre ?</div></div>
-                <div class="line"><span class="spk v">Vous</span><div class="bbl v">Merci beaucoup [Prénom], à [jour] !</div></div>
-              </div>
-            </div>
-          </div>
-          <div id="sc-objections" class="script-content" style="display:none;">
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "C'est une agence immobilière ?"</div><div class="obj-body">Je travaille avec un cabinet qui accompagne des acheteurs dans leur recherche. J'ai un client dont le profil correspond à votre bien — c'est pour ça que je vous contacte, pas pour vous démarcher.</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "Je ne veux pas passer par une agence"</div><div class="obj-body">Je comprends, et on ne vous demande rien de tel. L'idée c'est juste de vous présenter un acheteur — si vous vous entendez directement avec lui, c'est votre affaire. Moi je viens juste vérifier que le bien lui correspond.</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "Pourquoi vous venez sans votre client ?"</div><div class="obj-body">Je préfère toujours voir le bien avant de le lui présenter — pour être sûr de ne pas lui faire perdre son temps ni le vôtre. Si ça correspond, on revient ensemble très rapidement.</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "J'ai déjà des visites prévues"</div><div class="obj-body">Tant mieux ! Mon client est également très motivé. Une visite de plus ne peut que vous être favorable. Vous préférez qu'on passe avant ou après vos autres visites ?</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "J'ai déjà une agence"</div><div class="obj-body">Tout à fait, ça ne pose aucun problème. Une deuxième opinion sur la valeur du bien ne peut que vous être utile. Ce serait une visite de 20 minutes, sans suite si vous ne le souhaitez pas.</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "Rappelez-moi plus tard"</div><div class="obj-body">Pas de souci ! Vous préférez ce soir vers 18h ou demain matin ? — Ne jamais laisser dans le vague. Une heure précise ou rien.</div></div>
-            <div class="obj-block"><div class="obj-head"><i class="ti ti-alert-triangle"></i> "Mon prix est fixe"</div><div class="obj-body">C'est tout à fait votre droit. La visite n'a pas pour but de négocier le prix — on veut juste découvrir le bien. Vous seriez dispo plutôt jeudi ou vendredi ?</div></div>
           </div>
         </div>
-      </div>
 
-
-      <!-- EDIT SCRIPT -->
-      <div class="page" id="page-editscript">
+        <!-- Objections -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title"><i class="ti ti-edit"></i> Phases du script</span>
-            <button class="btn btn-primary btn-sm" onclick="saveScript()"><i class="ti ti-device-floppy"></i> Sauvegarder</button>
+            <span class="card-title"><i class="ti ti-alert-triangle"></i> Objection du propriétaire ?</span>
           </div>
-          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;" id="script-phases-editor"></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title"><i class="ti ti-alert-triangle"></i> Objections</span>
-            <button class="btn btn-sm" onclick="addObjection()"><i class="ti ti-plus"></i> Ajouter</button>
+          <div style="padding:14px 18px;">
+            <div class="search-wrap" style="margin-bottom:12px;">
+              <i class="ti ti-search"></i>
+              <input type="text" id="objection-search" placeholder="Tapez un mot-clé (ex : prix, agence, visite…)" oninput="filterObjections()" style="width:100%; padding:8px 11px 8px 32px; border:1.5px solid var(--g200); border-radius:8px; font-size:13px; font-family:inherit; outline:none;">
+            </div>
+            <div id="objections-quick-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div id="objection-answer-box" style="display:none; margin-top:12px;"></div>
           </div>
-          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;" id="objections-editor"></div>
         </div>
+
       </div>
     </div><!-- /content -->
   </div><!-- /main -->
@@ -562,6 +551,16 @@ const SC = {'Non appelé':'b-gray','Appel en attente':'b-orange','Appelé':'b-bl
 const MC = {'Faible':'b-red','Moyen':'b-orange','Élevé':'b-green'};
 const APPEL = ['Appelé','Refus','Intéressé','Rendez-vous obtenu','Mandat signé'];
 const PT = {dashboard:'Tableau de bord',prospects:'Mes prospects',nouveau:'Nouvelle annonce',relances:'Relances',script:"Script d'appel"};
+
+// Affiche une date stockée en ISO (YYYY-MM-DD) au format français JJ-MM-AAAA.
+// Le stockage reste en ISO pour que le tri chronologique (string compare) fonctionne toujours.
+function dispDate(iso) {
+  if (!iso) return '';
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  const [y,m,d] = parts;
+  return `${d}-${m}-${y}`;
+}
 
 // ── API HELPERS ───────────────────────────────────────────────────────────────
 async function apiFetch(path, options={}) {
@@ -658,7 +657,7 @@ function renderDashboard() {
     ? rels.map(p => `<div class="relance-item">
         <div class="avatar av-blue">${(p.prenom||'?')[0]}${(p.nom||'?')[0]}</div>
         <div class="relance-info"><div class="relance-name">${p.prenom||''} ${p.nom||''}</div><div class="relance-meta">${p.type} · ${p.ville||'—'} · ${p.tel||'—'}</div></div>
-        <div class="relance-right"><div class="relance-date">${p.date_relance}</div></div>
+        <div class="relance-right"><div class="relance-date">${dispDate(p.date_relance)}</div></div>
       </div>`).join('')
     : '<div class="empty-state"><i class="ti ti-bell-off"></i><p>Aucune relance aujourd\'hui</p></div>';
 
@@ -694,13 +693,13 @@ function renderProspects(list) {
         <th>Agent</th><th></th>
       </tr></thead><tbody>`
       +data.map(p=>`<tr>
-        <td>${p.date||'—'}</td>
+        <td>${dispDate(p.date)||'—'}</td>
         <td><div class="td-name">${p.prenom||''} ${p.nom||''}</div><div class="td-sub">${p.tel||'—'}</div></td>
         <td>${p.type||'—'}</td><td>${p.ville||'—'}</td>
         <td style="white-space:nowrap">${p.prix?Number(p.prix).toLocaleString('fr-FR')+' €':'—'}</td>
         <td><span class="badge ${SC[p.statut]||'b-gray'}">${p.statut}</span></td>
         <td><span class="badge ${MC[p.motiv]||'b-gray'}">${p.motiv||'—'}</span></td>
-        <td>${p.relance==='Oui'?`<span class="badge b-orange"><i class="ti ti-bell" style="font-size:10px"></i> ${p.date_relance||'Oui'}</span>`:'<span style="color:var(--g400);font-size:12px">Non</span>'}</td>
+        <td>${p.relance==='Oui'?`<span class="badge b-orange"><i class="ti ti-bell" style="font-size:10px"></i> ${dispDate(p.date_relance)||'Oui'}</span>`:'<span style="color:var(--g400);font-size:12px">Non</span>'}</td>
         <td style="font-size:12px;color:var(--g500)">${p.agent||'—'}</td>
         <td><button class="btn btn-sm btn-danger" onclick="deleteProspect(${p.id})"><i class="ti ti-trash"></i></button></td>
       </tr>`).join('')+'</tbody></table>'
@@ -779,7 +778,7 @@ function renderRelances() {
         return `<div class="relance-item">
           <div class="avatar ${late?'av-red':'av-blue'}">${(p.prenom||'?')[0]}${(p.nom||'?')[0]}</div>
           <div class="relance-info"><div class="relance-name">${p.prenom||''} ${p.nom||''} <span style="font-weight:400;color:var(--g500);font-size:12px">· ${p.ville||''} · ${p.type}</span></div><div class="relance-meta">${p.tel||'—'}${p.resume?' · "'+p.resume.substring(0,50)+'…"':''}</div></div>
-          <div class="relance-right"><div class="relance-date ${late?'relance-late':''}">${late?'⚠ En retard':p.date_relance||'—'}</div>${p.priorite==='Urgente'?'<span class="badge b-red" style="margin-top:4px">Urgente</span>':''}</div>
+          <div class="relance-right"><div class="relance-date ${late?'relance-late':''}">${late?'⚠ En retard':dispDate(p.date_relance)||'—'}</div>${p.priorite==='Urgente'?'<span class="badge b-red" style="margin-top:4px">Urgente</span>':''}</div>
         </div>`;}).join('')
     : '<div class="empty-state"><i class="ti ti-bell-off"></i><p>Aucune relance planifiée</p></div>';
 }
